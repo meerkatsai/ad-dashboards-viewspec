@@ -1,28 +1,166 @@
 {
-  "_doc": "Data shape -> THE representation. Ordered, first match wins — deterministic, so the same shape always gets the same chart (never varied for variety). The generator evaluates these against the envelope + intent; the LLM never picks a chart type. Shape terms: T = temporal dim/grain present, C = categorical dims count, low/high = dim cardinality, F = facts on the view.",
-  "rules": [
-    { "when": { "intent": "cohort" }, "use": "cohort_matrix", "layout": { "x": "<cohort dim>", "series": "<age grain: periods since cohort start>", "y": "<one fact>" }, "note": "retention/repeat shape: rows = cohort (e.g. first_order_month), columns = periods since; values printed, sequential ramp" },
-    { "when": { "intent": "flow", "stage_dims_min": 2 }, "use": "sankey", "layout": { "x": "<source stage>", "series": "<target stage>", "y": "<one additive fact>" }, "note": "journey/funnel flows between stage dims; additive fact only (counts, spend) — never a ratio" },
-    { "when": { "intent": "composition", "C": 2, "additive_fact": true }, "use": "marimekko", "layout": { "x": "<width dim, share of additive fact>", "series": "<height dim, share within column>", "y": "<one additive fact>" }, "note": "both splits matter AND share matters; the honest pie replacement for two dims" },
-    { "when": { "intent": "kpi" }, "use": "kpi", "layout": { "y": "<facts>", "compare": true }, "note": "numbers never stand alone: delta vs previous period always on; target delta when a per-account target exists" },
-    { "when": { "T": true, "C": 0 }, "use": "line", "layout": { "x": "<grain>", "y": "<1-2 facts>", "compare": true } },
-    { "when": { "T": true, "C": 1, "cardinality": "low" }, "use": "line", "layout": { "x": "<grain>", "series": "<dim>", "y": "<one fact>" }, "note": "one line per member; > ~6 members would be spaghetti -> rank instead (next rules)" },
-    { "when": { "T": false, "C": 1, "cardinality": "low" }, "use": "bars_v", "layout": { "x": "<dim>", "y": "<1-2 facts>" }, "note": "few known members (placement, device, os): side-by-side vertical bars; add share chips when intent=composition and fact is additive" },
-    { "when": { "T": false, "C": 1, "cardinality": "high" }, "use": "bars_h", "layout": { "x": "<dim>", "y": "<one fact>", "sort": "primary desc (asc when invert)", "limit": 10 }, "note": "rankings: campaigns, products, keywords — 10 then Show more" },
-    { "when": { "T": false, "C": 2 }, "use": "heatmap", "layout": { "x": "<column dim>", "series": "<row dim>", "y": "<one fact>" }, "note": "entity x dimension efficiency grid; 5-step sequential ramp, values printed, invert-aware" },
-    { "when": { "fallback": true }, "use": "table", "layout": { "y": "<all facts>", "sort": "primary desc", "limit": 10 }, "note": "exact values / full metric sets / anything the rules above don't own. Never wrong, just dense" }
-  ],
-  "constraints": {
-    "banned": ["pie", "donut", "area", "stacked_area", "3d anything", "dual-axis with incompatible units"],
-    "banned_reason": "spatial-area comparison is unreadable (do's/don'ts); composition uses bars_v+share, marimekko, or table",
-    "consistency": "same shape -> same chart, across the whole product; variety is a bug not a feature",
-    "context": "every rendered number carries comparative context: delta vs previous period (and vs target when configured); compare defaults ON for kpi and line",
-    "precision": "money 0 dp, rates 2 dp, ratios 1 dp (x) — from the basic repo's primitives rules; never more",
-    "status_color": "green/red on deltas ONLY, inverted for lower-is-better facts (acos, cpc, cpi, cost_per_conv); never on chart marks",
-    "data_ink": "no gridlines beyond one horizontal style, no chart borders/backgrounds, no icons in charts, no in-chart prose (a single note chip max)",
-    "facts_per_chart": "max 2 (tables exempt); a second fact needs compatible units or goes to its own card",
-    "grouping": "related facts stay on one card (the metric selector), never scattered across cards",
-    "non_additive": "ratios and uniques (roas, reach, frequency, ctr) never stack, never size a marimekko, never sum across platforms; cross-platform views are additive facts only per measurement.yaml",
-    "provisional": "days inside the platform settled window render labeled provisional, never as final"
+ "_doc": "Data shape -> THE representation. Ordered, first match wins — deterministic, so the same shape always gets the same chart (never varied for variety). The generator evaluates these against the envelope + intent; the LLM never picks a chart type. Shape terms: T = temporal dim/grain present, C = categorical dims count, low/high = dim cardinality, F = facts on the view.",
+ "rules": [
+  {
+   "when": {
+    "intent": "cohort"
+   },
+   "use": "cohort_matrix",
+   "layout": {
+    "x": "<cohort dim>",
+    "series": "<age grain: periods since cohort start>",
+    "y": "<one fact>"
+   },
+   "note": "retention/repeat shape: rows = cohort (e.g. first_order_month), columns = periods since; values printed, sequential ramp"
+  },
+  {
+   "when": {
+    "intent": "flow",
+    "stage_dims_min": 2
+   },
+   "use": "sankey",
+   "layout": {
+    "x": "<source stage>",
+    "series": "<target stage>",
+    "y": "<one additive fact>"
+   },
+   "note": "journey/funnel flows between stage dims; additive fact only (counts, spend) — never a ratio"
+  },
+  {
+   "when": {
+    "intent": "composition",
+    "C": 2,
+    "additive_fact": true
+   },
+   "use": "marimekko",
+   "layout": {
+    "x": "<width dim, share of additive fact>",
+    "series": "<height dim, share within column>",
+    "y": "<one additive fact>"
+   },
+   "note": "both splits matter AND share matters; the honest pie replacement for two dims"
+  },
+  {
+   "when": {
+    "intent": "detail"
+   },
+   "use": "table",
+   "layout": {
+    "y": "<all facts>",
+    "sort": "primary",
+    "limit": 10
+   },
+   "note": "exact values / operational drill-down asked for by name ('show me the table', 'exact numbers')"
+  },
+  {
+   "when": {
+    "intent": "kpi"
+   },
+   "use": "kpi",
+   "layout": {
+    "y": "<facts>",
+    "compare": true
+   },
+   "note": "numbers never stand alone: delta vs previous period always on; target delta when a per-account target exists"
+  },
+  {
+   "when": {
+    "T": true,
+    "C": 0
+   },
+   "use": "line",
+   "layout": {
+    "x": "<grain>",
+    "y": "<1-2 facts>",
+    "compare": true
+   }
+  },
+  {
+   "when": {
+    "T": true,
+    "C": 1,
+    "cardinality": "low"
+   },
+   "use": "line",
+   "layout": {
+    "x": "<grain>",
+    "series": "<dim>",
+    "y": "<one fact>"
+   },
+   "note": "one line per member; > ~6 members would be spaghetti -> rank instead (next rules)"
+  },
+  {
+   "when": {
+    "T": false,
+    "C": 1,
+    "cardinality": "low"
+   },
+   "use": "bars_v",
+   "layout": {
+    "x": "<dim>",
+    "y": "<1-2 facts>"
+   },
+   "note": "few known members (placement, device, os): side-by-side vertical bars; add share chips when intent=composition and fact is additive"
+  },
+  {
+   "when": {
+    "T": false,
+    "C": 1,
+    "cardinality": "high"
+   },
+   "use": "bars_h",
+   "layout": {
+    "x": "<dim>",
+    "y": "<one fact>",
+    "sort": "primary desc (asc when invert)",
+    "limit": 10
+   },
+   "note": "rankings: campaigns, products, keywords — 10 then Show more"
+  },
+  {
+   "when": {
+    "T": false,
+    "C": 2
+   },
+   "use": "heatmap",
+   "layout": {
+    "x": "<column dim>",
+    "series": "<row dim>",
+    "y": "<one fact>"
+   },
+   "note": "entity x dimension efficiency grid; 5-step sequential ramp, values printed, invert-aware"
+  },
+  {
+   "when": {
+    "fallback": true
+   },
+   "use": "table",
+   "layout": {
+    "y": "<all facts>",
+    "sort": "primary desc",
+    "limit": 10
+   },
+   "note": "exact values / full metric sets / anything the rules above don't own. Never wrong, just dense"
   }
+ ],
+ "constraints": {
+  "banned": [
+   "pie",
+   "donut",
+   "area",
+   "stacked_area",
+   "3d anything",
+   "dual-axis with incompatible units"
+  ],
+  "banned_reason": "spatial-area comparison is unreadable (do's/don'ts); composition uses bars_v+share, marimekko, or table",
+  "consistency": "same shape -> same chart, across the whole product; variety is a bug not a feature",
+  "context": "every rendered number carries comparative context: delta vs previous period (and vs target when configured); compare defaults ON for kpi and line",
+  "precision": "money 0 dp, rates 2 dp, ratios 1 dp (x) — from the basic repo's primitives rules; never more",
+  "status_color": "green/red on deltas ONLY, inverted for lower-is-better facts (acos, cpc, cpi, cost_per_conv); never on chart marks",
+  "data_ink": "no gridlines beyond one horizontal style, no chart borders/backgrounds, no icons in charts, no in-chart prose (a single note chip max)",
+  "facts_per_chart": "max 2 (tables exempt); a second fact needs compatible units or goes to its own card",
+  "grouping": "related facts stay on one card (the metric selector), never scattered across cards",
+  "non_additive": "ratios and uniques (roas, reach, frequency, ctr) never stack, never size a marimekko, never sum across platforms; cross-platform views are additive facts only per measurement.yaml",
+  "provisional": "days inside the platform settled window render labeled provisional, never as final"
+ }
 }

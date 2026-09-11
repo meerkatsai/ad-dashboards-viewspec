@@ -89,7 +89,11 @@ def choose_view(query, envelope, intent):
     grain = next((d for d in task.get("dimensions", []) if d in GRAINS), None)
     cats = [d for d in envelope["dims"] if d["key"] in task.get("dimensions", [])]
     view = {"intent": intent}
-    if intent == "cohort":
+    if intent == "detail":
+        view.update(representation="table", y=[f["key"] for f in facts],
+                    sort={"by": primary, "direction": task.get("sort", {}).get("direction", "desc")},
+                    limit=task.get("limit", 10))
+    elif intent == "cohort":
         view.update(representation="cohort_matrix", x=cats[0]["key"] if cats else "first_order_month",
                     series="month", y=[primary])
     elif intent == "flow" and len(cats) >= 2:
