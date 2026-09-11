@@ -7,6 +7,7 @@
 "use strict";
 
 const GRAINS = ["date", "week", "month"];
+const ICON_PIN='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1z"/></svg>';
 const NON_ADDITIVE = new Set(["roas","roi","direct_roi","indirect_roi","acos","ctr","cvr","cpc","avg_cpc","cpm","cpi","aov","reach","frequency","conv_rate","cost_per_conv","conv_value_per_cost","mer","spend_share"]);
 const SERIES = ["var(--series-1)","var(--series-2)","var(--series-3)","var(--series-4)","var(--series-5)","var(--series-6)","var(--series-7)","var(--series-8)"];
 const HEAT = ["var(--heat-1)","var(--heat-2)","var(--heat-3)","var(--heat-4)","var(--heat-5)"];
@@ -397,7 +398,7 @@ function render(){
       ${grain?`<span class="seg">${GRAINS.map(g=>`<button data-g="${g}" class="${grain===g?"on":""}">${g[0].toUpperCase()}</button>`).join("")}</span>`:""}
       <span class="seg">${["7d","30d","90d"].map(p=>`<button data-p="${p}" class="${task.time_range&&task.time_range.value===parseInt(p)?"on":""}">${p}</button>`).join("")}</span>
       <button id="cmp" class="${task.comparison?"on":""}">Compare</button>
-      <button id="pin">Pin</button>
+      <button id="pin" style="display:inline-flex;align-items:center">${ICON_PIN}Pin</button>
     </div>
     <div class="crumbs">${(task.where||[]).length?"drilled: ":"no drills — click marks to drill"}${(task.where||[]).map((w,i)=>`<span class="crumb" data-w="${i}" title="remove">${esc((DIMS[w.dimension]||{}).label||w.dimension)} = ${esc(w.value)} ✕</span>`).join("")}</div>
     <div class="body">${renderChart(spec,rows)}</div>
