@@ -123,7 +123,7 @@ function vBars(groups,unit){ // groups: [{label, bars:[{label?,value,color,dim?}
   for(let g=0;g<=3;g++){const y=H-44-(g/3)*(H-84);out+=`<line x1="${pad}" x2="${W-16}" y1="${y}" y2="${y}" stroke="var(--rule-grid)"/><text x="${pad-8}" y="${y+3}" text-anchor="end">${fmt(maxV*g/3,unit)}</text>`;}
   groups.forEach((g,gi)=>{ const n=g.bars.length, bw=Math.min(64,(gw-24)/n);
     g.bars.forEach((b,bi)=>{ const x=pad+16+gi*gw+bi*(bw+6), h=(b.value/maxV)*(H-84), y=H-44-h;
-      out+=`<rect class="bridge" data-m="${esc(g.label)}" x="${x}" y="${y}" width="${bw}" height="${h}" rx="1" fill="${b.dim?"var(--series-dim)":b.color||"var(--series-1)"}" style="cursor:pointer"><title>${esc(g.label)}${b.label?" · "+esc(b.label):""}: ${fmt(b.value,unit)} — click to open in the explorer</title></rect>`;
+      out+=`<rect class="bridge" data-m="${esc(g.label)}" x="${x}" y="${y}" width="${bw}" height="${h}" rx="1" fill="${b.dim?"var(--series-dim)":b.color||"var(--series-1)"}" style="cursor:pointer"><title>${esc(g.label)}${b.label?" · "+esc(b.label):""}: ${fmt(b.value,unit)} — click to drill in place</title></rect>`;
       out+=`<text class="val" x="${x+bw/2}" y="${y-6}" text-anchor="middle">${fmt(b.value,unit)}</text>`;});
     out+=`<text x="${pad+16+gi*gw+(Math.min(64,(gw-24)/n)*n+6*(n-1))/2}" y="${H-28}" text-anchor="middle" class="val">${esc(g.label)}</text>`;});
   return out+"</svg>";
@@ -134,7 +134,7 @@ function hBars(rows,nameKey,mk,pk,extraKey){
   rows.forEach((r,i)=>{ const y=6+i*rh,w=((r[mk]||0)/maxV)*(W-lw-150);
     out+=`<text x="${lw-8}" y="${y+13}" text-anchor="end" class="val">${esc(String(r[nameKey]).slice(0,36))}</text>`;
     out+=`<rect x="${lw}" y="${y}" width="${W-lw-150}" height="${rh-11}" rx="1" fill="var(--bar-track)"/>`;
-    out+=`<rect class="bridge" data-m="${esc(r[nameKey])}" x="${lw}" y="${y}" width="${w}" height="${rh-11}" rx="1" fill="var(--series-1)" style="cursor:pointer"><title>click to open in the explorer — drill into ${esc(r[nameKey])}</title></rect>`;
+    out+=`<rect class="bridge" data-m="${esc(r[nameKey])}" data-m2="${esc(r[nameKey])}" x="${lw}" y="${y}" width="${w}" height="${rh-11}" rx="1" fill="var(--series-1)" style="cursor:pointer"><title>${esc(r[nameKey])} — click to drill in place</title></rect>`;
     out+=`<text x="${lw+(W-lw-150)+8}" y="${y+13}">${fmt(r[mk],U(mk))}${extraKey?` · ${esc(L(extraKey,pk))} ${fmt(r[extraKey],U(extraKey))}`:""}</text>`;});
   return out+"</svg>";
 }
@@ -147,7 +147,7 @@ function heat(cols,rowsY,val,unit,inv){
   rowsY.forEach((yv,j)=>{ out+=`<text x="232" y="${26+j*ch+ch/2+4}" text-anchor="end" class="val">${esc(String(yv).slice(0,30))}</text>`;
     cols.forEach((x,i)=>{ const v=val(x,yv); let t=(v-mn)/((mx-mn)||1); if(inv)t=1-t;
       const step=Math.min(4,Math.floor(t*5));
-      out+=`<rect class="bridge" data-hx="${esc(x)}" data-hy="${esc(String(yv))}" x="${240+i*cw}" y="${26+j*ch}" width="${cw-4}" height="${ch-4}" rx="1" fill="${HEAT[step]}" style="cursor:pointer"><title>click to open in the explorer — ${esc(String(yv))} × ${esc(x)}</title></rect><text pointer-events="none" x="${240+i*cw+cw/2-2}" y="${26+j*ch+ch/2+2}" text-anchor="middle" fill="${step>=3?"var(--surface-card)":"var(--ink-900)"}">${fmt(v,unit)}</text>`;});});
+      out+=`<rect class="bridge" data-hx="${esc(x)}" data-hy="${esc(String(yv))}" x="${240+i*cw}" y="${26+j*ch}" width="${cw-4}" height="${ch-4}" rx="1" fill="${HEAT[step]}" style="cursor:pointer"><title>click to drill in place — ${esc(String(yv))} × ${esc(x)}</title></rect><text pointer-events="none" x="${240+i*cw+cw/2-2}" y="${26+j*ch+ch/2+2}" text-anchor="middle" fill="${step>=3?"var(--surface-card)":"var(--ink-900)"}">${fmt(v,unit)}</text>`;});});
   return out+`</svg><div class="note">5-step scale, ${inv?"darker = better (lower)":"darker = higher"}</div>`;
 }
 
@@ -199,7 +199,7 @@ const CARDS={
       const rows=MEMBERS.campaign.map(c=>{const r={campaign:c};CFG[pk].metrics.forEach(k=>r[k]=totalFor(k,c,pk).cur);return r;})
         .sort((a,b)=>b.spend-a.spend);
       let out="<table><tr>"+cols.map(c=>`<th>${c==="campaign"?"Campaign":esc(L(c,pk))}${c==="spend"?' <span style="color:var(--ink-400)">↓</span>':""}</th>`).join("")+"</tr>";
-      rows.forEach(r=>{out+=`<tr class="num">`+cols.map(c=>`<td>${c==="campaign"?esc(r[c]):fmt(r[c],U(c))}</td>`).join("")+"</tr>";});
+      rows.forEach(r=>{out+=`<tr class="num bridge" data-m="${esc(r.campaign)}" style="cursor:pointer" title="click to drill in place">`+cols.map(c=>`<td>${c==="campaign"?esc(r[c]):fmt(r[c],U(c))}</td>`).join("")+"</tr>";});
       return out+"</table>"; } },
   dod:{granularity:"D"}, wow:{granularity:"W"}, mom:{granularity:"M"},
   grid:{ title:(pk)=>"Campaign × "+({placement:"placement",device:"device",os:"OS"})[CFG[pk].grid]+" · "+L(CFG[pk].effAlt,pk),
@@ -279,14 +279,21 @@ let UNPINNED=store.get("mk-dash-unpinned",{});
 
 function cardHtml(pk,id){
   const c=CARDS[id];
+  const d=(["rank","table","pbars","grid"].includes(id))?drillOf(pk,id):null;
+  // evaluation order matters: title() initializes the card's default state, q/ctl/body read it
+  const titleHtml=c.title(pk), qHtml=c.q(pk), ctlHtml=c.ctl(pk);
+  let body;
+  if(d){ const mk=(st(pk,id,{}).mk)||(id==="grid"?CFG[pk].effAlt:CFG[pk].eff); body=drilledBody(pk,id,mk); }
+  else body=c.body(pk);
   return `<div class="card" data-cid="${id}">
     <div class="card-h">
-      <div class="tw"><div class="t">${c.title(pk)}</div><div class="q">${c.q(pk)}</div></div>
+      <div class="tw"><div class="t">${titleHtml}${d?" — drilled":""}</div><div class="q">${qHtml}</div></div>
       <span class="meta">synced 2m ago</span>
       <button class="pinbtn pinned" data-unpin="${id}" title="unpin — moves to Reports">${ICON_PIN_OFF}</button>
     </div>
-    <div class="controls">${c.ctl(pk)}</div>
-    <div class="body">${c.body(pk)}</div>
+    <div class="controls">${ctlHtml}</div>
+    ${crumbsHtml(pk,id)}
+    <div class="body">${body}</div>
     <div class="foot"><span>data as of 2026-09-10 06:30 ist · last 2 days provisional</span><span>one visualization per card</span></div>
   </div>`;
 }
@@ -298,7 +305,7 @@ function render(){
   const shown=list.filter(id=>!UNPINNED[key(pk,id)]);
   let html=shown.map(id=>cardHtml(pk,id)).join("");
   if(hidden.length) html+=`<div class="restore"><span>${hidden.length} card${hidden.length>1?"s":""} unpinned — available in Reports.</span><button id="restoreAll">Restore all</button></div>`;
-  html+=`<div class="mono" style="padding:8px 0 24px">sample data · figures in inr · one visualization per card · pin order: newest last · click any bar or cell to drill in the <a class="xlink" href="explore.html">on-demand explorer →</a></div>`;
+  html+=`<div class="mono" style="padding:8px 0 24px">sample data · figures in inr · one visualization per card · pin order: newest last · click any bar, row or cell to drill IN PLACE (breadcrumb undoes) · <a class="xlink" href="explore.html">on-demand explorer →</a></div>`;
   $("#stack").innerHTML=html;
   // wiring
   document.querySelectorAll("[data-unpin]").forEach(b=>b.addEventListener("click",()=>{
@@ -313,22 +320,60 @@ function render(){
     else s[b.dataset.ctl]=b.dataset.val;
     render();}));
 }
+/* ── in-card drill: the card itself transforms; no navigation ───────────── */
 const PRODUCT_DIM={amazon:"advertised_asin",flipkart:"fsn",google:"keyword",meta:"creative"};
-function toExplore(p){ location.href="explore.html#q="+btoa(unescape(encodeURIComponent(JSON.stringify(p)))); }
+const PRODUCT_MEMBERS={amazon:["AreoVeda Baby Lotion","AreoVeda Stretch Marks Cream","AreoVeda Baby Wash","AreoVeda Massage Oil","AreoVeda Rash Cream","AreoVeda Bathing Bar","AreoVeda Belly Oil","AreoVeda Nipple Butter"],
+  flipkart:["Baby Lotion 200ml","Stretch Cream 100g","Baby Wash 250ml","Massage Oil 150ml","Rash Cream 50g","Bathing Bar 75g"],
+  google:["baby diaper cream","stretch marks cream","baby wash","natural baby lotion","baby massage oil","diaper rash"],
+  meta:["UGC Testimonial","Product Demo","Before/After","Founder Story"]};
+const DIM_LABEL={advertised_asin:"Advertised ASIN",fsn:"FSN (product)",keyword:"Keyword",creative:"Creative",campaign:"Campaign",placement:"Placement",device:"Device",os:"OS"};
+function nextDim(pk,dim){ // what a member of `dim` drills into
+  if(dim==="campaign") return PRODUCT_DIM[pk];
+  if(dim==="placement"||dim==="device"||dim==="os") return "campaign";
+  return null; }
+function membersOf(pk,dim){ return dim===PRODUCT_DIM[pk]?PRODUCT_MEMBERS[pk]:(MEMBERS[dim]||[]); }
+function drillOf(pk,id){ const s=STATE[key(pk,id)]; return (s&&s.drill)||null; }
+function setDrill(pk,id,drill){ const k=key(pk,id); if(!STATE[k])STATE[k]={}; STATE[k].drill=drill; render(); }
+function pushDrill(pk,id,dim,value){
+  const cur=drillOf(pk,id)||{filters:[]};
+  const to=nextDim(pk,dim);
+  if(!to){ return; } // edge of the hierarchy
+  setDrill(pk,id,{filters:cur.filters.concat([{dim,value}]),toDim:to});
+}
+function drilledBody(pk,id,mk){
+  const d=drillOf(pk,id); const seed=d.filters.map(f=>f.dim+"="+f.value).join("&");
+  const scale=Math.pow(0.42,d.filters.length);
+  const rows=membersOf(pk,d.toDim).map(m=>({name:m,
+      [mk]:NON_ADDITIVE.has(mk)?baseVal(mk,m+"|"+seed,pk):baseVal(mk,m+"|"+seed,pk)*scale,
+      spend:baseVal("spend",m+"|"+seed,pk)*scale}))
+    .sort((a,b)=>((FACTS[mk]||{}).invert?a[mk]-b[mk]:b[mk]-a[mk])).slice(0,10);
+  const deeper=nextDim(pk,d.toDim);
+  return hBars(rows,"name",mk,pk,mk!=="spend"?"spend":null)
+    +`<div class="note">${DIM_LABEL[d.toDim].toLowerCase()} within the selection · ${deeper?"click a bar to drill further":"edge of the hierarchy"}</div>`;
+}
+function crumbsHtml(pk,id){
+  const d=drillOf(pk,id); if(!d) return "";
+  return `<div class="crumbs">drilled: ${d.filters.map((f,i)=>`<span class="crumb" data-crumb="${i}" title="remove">${esc(DIM_LABEL[f.dim]||f.dim)} = ${esc(f.value)} ✕</span>`).join("")}</div>`;
+}
 document.addEventListener("click",e=>{
-  const t=e.target.closest?e.target.closest(".bridge"):null; if(!t)return;
-  const pk=store.get("mk-dash-platform","amazon"); if(pk==="all")return;
-  const cid=(t.closest(".card")||{}).dataset?t.closest(".card").dataset.cid:null; if(!cid)return;
-  const tr30={type:"relative",value:30,unit:"day"}; const pdim=PRODUCT_DIM[pk];
-  if(cid==="rank"&&t.dataset.m){ const mk=st(pk,"rank",{}).mk||CFG[pk].eff;
-    toExplore({platform:pk,intent:"comparison",title:"Inside "+t.dataset.m,
-      task:{entity:"campaign",metrics:[mk,"spend"],dimensions:[pdim],where:[{dimension:"campaign",operator:"eq",value:t.dataset.m}],time_range:tr30,sort:{metric:"spend",direction:"desc"},limit:10}}); }
-  else if(cid==="pbars"&&t.dataset.m){ const dim=CFG[pk].grid; if(dim==="os")return;
-    toExplore({platform:pk,intent:"comparison",title:"Campaigns within "+t.dataset.m,
-      task:{entity:"campaign",metrics:[CFG[pk].eff,"spend"],dimensions:["campaign"],where:[{dimension:dim,operator:"eq",value:t.dataset.m}],time_range:tr30,sort:{metric:"spend",direction:"desc"},limit:10}}); }
-  else if(cid==="grid"&&t.dataset.hx){ const dim=CFG[pk].grid; if(dim==="os")return;
-    toExplore({platform:pk,intent:"comparison",title:"Inside "+t.dataset.hy+" × "+t.dataset.hx,
-      task:{entity:"campaign",metrics:[CFG[pk].effAlt,"spend"],dimensions:[pdim],where:[{dimension:"campaign",operator:"eq",value:t.dataset.hy},{dimension:dim,operator:"eq",value:t.dataset.hx}],time_range:tr30,sort:{metric:"spend",direction:"desc"},limit:10}}); }
+  const pk=store.get("mk-dash-platform","amazon");
+  const card=e.target.closest?e.target.closest(".card"):null; if(!card)return;
+  const cid=card.dataset.cid; if(!cid)return;
+  const crumb=e.target.closest(".crumb");
+  if(crumb){ const i=parseInt(crumb.dataset.crumb); const d=drillOf(pk,cid);
+    const filters=d.filters.slice(0,i);
+    if(!filters.length) setDrill(pk,cid,null);
+    else setDrill(pk,cid,{filters,toDim:nextDim(pk,filters[filters.length-1].dim)});
+    return; }
+  const t=e.target.closest(".bridge"); if(!t)return;
+  if(pk==="all")return;
+  const d=drillOf(pk,cid);
+  if(d&&t.dataset.m2!==undefined){ pushDrill(pk,cid,d.toDim,t.dataset.m2); return; } // deeper
+  if(cid==="rank"&&t.dataset.m) pushDrill(pk,cid,"campaign",t.dataset.m);
+  else if(cid==="table"&&t.dataset.m) pushDrill(pk,cid,"campaign",t.dataset.m);
+  else if(cid==="pbars"&&t.dataset.m) pushDrill(pk,cid,CFG[pk].grid,t.dataset.m);
+  else if(cid==="grid"&&t.dataset.hx){ const dim=CFG[pk].grid;
+    setDrill(pk,cid,{filters:[{dim:"campaign",value:t.dataset.hy},{dim,value:t.dataset.hx}],toDim:PRODUCT_DIM[pk]}); }
 });
 const sel=$("#platform");
 [{v:"all",l:"All platforms"},{v:"amazon",l:"Amazon Ads"},{v:"flipkart",l:"Flipkart Ads"},{v:"google",l:"Google Ads"},{v:"meta",l:"Meta Ads"}]

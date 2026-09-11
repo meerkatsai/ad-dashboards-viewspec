@@ -55,6 +55,9 @@
   td{height:36px;padding:0 12px;font-size:var(--fs-body);color:var(--ink-700);text-align:right;border-bottom:1px solid var(--rule);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   th:first-child,td:first-child{text-align:left}
   tr:hover td{background:var(--surface-sunken)}
+  .crumbs{padding:8px 20px;font-family:var(--font-mono);font-size:var(--fs-micro);color:var(--ink-400);border-bottom:1px solid var(--rule);display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+  .crumb{background:var(--surface-tint);border:1px solid var(--accent);border-radius:3px;padding:2px 6px;color:var(--ink-700);cursor:pointer}
+  .crumb:hover{text-decoration:line-through}
   .restore{padding:12px 16px;border:1px dashed var(--rule);border-radius:6px;font-size:var(--fs-body);color:var(--ink-500);display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
   .restore button{border:0;background:none;color:var(--accent);font-weight:500}
   .libitem{display:flex;align-items:center;gap:12px;background:var(--surface-card);border:1px solid var(--rule);border-radius:6px;padding:10px 16px;margin-bottom:8px}
@@ -76,6 +79,6 @@
 <div class="wrap">
   <div id="stack"></div>
 </div>
-<script src="cockpit.js"></script>
+<script src="cockpit.js?v=3"></script>
 </body>
 </html>
