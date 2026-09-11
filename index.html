@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>View Spec — living chart demo</title>
+<style>
+  :root{
+    --page:#FAFAF9; --card:#fff; --ink-900:#1c1917; --ink-700:#44403c; --ink-500:#78716c;
+    --ink-300:#d6d3d1; --rule:#e7e5e4; --blue:#2563eb; --blue-soft:#93b4f5; --red:#dc2626;
+    --green:#16a34a; --yellow:#ca8a04; --purple:#7c3aed; --teal:#0d9488; --pink:#db2777;
+    --ember:#EA580C; --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+    --sans:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box} body{margin:0;background:var(--page);color:var(--ink-900);font:14px/1.45 var(--sans)}
+  .wrap{max-width:1440px;margin:0 auto;padding:24px}
+  h1{font-size:26px;font-weight:650;margin:0} .sub{color:var(--ink-500);margin:4px 0 20px}
+  .top{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+  select,button{font:13px var(--sans);border:1px solid var(--ink-300);background:#fff;border-radius:4px;padding:6px 10px;cursor:pointer}
+  button.primary{background:var(--ember);border-color:var(--ember);color:#fff}
+  button.on{background:var(--ink-900);border-color:var(--ink-900);color:#fff}
+  .grid{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:16px;align-items:start}
+  @media (max-width:1000px){.grid{grid-template-columns:1fr}}
+  .card{background:var(--card);border:1px solid var(--rule);border-radius:6px}
+  .card-h{padding:14px 20px 10px;border-bottom:1.5px solid var(--ink-900)}
+  .card-h .t{font-size:15px;font-weight:650} .card-h .q{font-size:12px;color:var(--ink-500)}
+  .controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 20px;border-bottom:1px solid var(--rule)}
+  .seg{display:inline-flex;border:1px solid var(--ink-300);border-radius:4px;overflow:hidden}
+  .seg button{border:0;border-radius:0;padding:5px 10px} .seg button.on{background:var(--ink-900);color:#fff}
+  .crumbs{padding:8px 20px;font:11px var(--mono);color:var(--ink-500);border-bottom:1px solid var(--rule);display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+  .crumb{background:#eff4fe;border:1px solid var(--blue-soft);border-radius:3px;padding:2px 6px;color:var(--ink-700);cursor:pointer}
+  .crumb:hover{text-decoration:line-through}
+  .body{padding:16px 20px 20px;overflow-x:auto}
+  .foot{padding:8px 20px;border-top:1px solid var(--rule);font:11px var(--mono);color:var(--ink-500);display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px}
+  .spec{position:sticky;top:16px} .spec pre{margin:0;padding:14px 16px;font:11px/1.5 var(--mono);white-space:pre-wrap;word-break:break-word;max-height:78vh;overflow:auto}
+  .spec .card-h .t{font-size:13px} .hint{font:11px var(--mono);color:var(--ink-500);padding:6px 16px;border-bottom:1px solid var(--rule)}
+  svg text{font:11px var(--mono);fill:var(--ink-500)} svg .val{fill:var(--ink-700)}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px}
+  .kpi .lab{font-size:12px;color:var(--ink-500)} .kpi .v{font-size:28px;font-weight:650;font-variant-numeric:tabular-nums}
+  .kpi .d{font-size:12px} .up{color:var(--green)} .down{color:var(--red)}
+  table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+  th,td{padding:6px 10px;font-size:12.5px;text-align:right;border-bottom:1px solid var(--rule)}
+  th{color:var(--ink-500);font-weight:500} th:first-child,td:first-child{text-align:left}
+  tr.click{cursor:pointer} tr.click:hover{background:#f5f5f4}
+  .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--ink-900);color:#fff;font-size:12.5px;border-radius:6px;padding:10px 16px;opacity:0;transition:opacity .2s}
+  .toast.show{opacity:1}
+  .note{font-size:11px;color:var(--ink-500);padding:6px 20px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>View Spec — living chart demo</h1>
+  <div class="sub">seeded demo data · no LLM anywhere — a canned prompt stands in for the router; everything after it is the deterministic loop: query → envelope → rules → chart → interaction → query</div>
+  <div class="top">
+    <span style="font:11px var(--mono);color:var(--ink-500)">PROMPT (canned)</span>
+    <select id="prompt"></select>
+    <button class="primary" id="run">Generate</button>
+  </div>
+  <div class="grid">
+    <div>
+      <div class="card" id="chartCard"></div>
+    </div>
+    <div class="card spec">
+      <div class="card-h"><div class="t">view_spec (live)</div></div>
+      <div class="hint">updates on every interaction — this JSON is the whole contract</div>
+      <pre id="specView"></pre>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<script src="demo.js"></script>
+</body>
+</html>
