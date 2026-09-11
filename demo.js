@@ -85,8 +85,11 @@ const PROMPTS = [
 /* ── derive (port of derive.py) ─────────────────────────────────────────── */
 function envelopeFor(query, platform){
   const task = query.task;
-  const qdims = (task.dimensions||[]).filter(d=>!GRAINS.includes(d));
-  const keys=[], frontier=[...qdims];
+  let qdims = (task.dimensions||[]).filter(d=>!GRAINS.includes(d));
+  // empty envelope guard: a dimension-less query still gets the entity's natural children
+  // (account/campaign -> campaign, store -> channel) so breakout/drill always has somewhere to go
+  const seed = qdims.length?qdims:({account:["campaign"],campaign:["campaign"],store:["channel"]}[task.entity]||[]);
+  const keys=[], frontier=[...seed];
   while(frontier.length){
     const k = frontier.shift();
     if(keys.includes(k)||!DIMS[k]) continue;
@@ -124,9 +127,11 @@ function applyI(spec, i){
   const s=JSON.parse(JSON.stringify(spec)), task=s.query.task, env=s.envelope;
   const dimKeys=new Set(env.dims.map(d=>d.key)), factKeys=new Set(env.facts.map(f=>f.key));
   if(i.type==="drill"){
-    const src=env.dims.find(d=>d.key===i.on_dim);
-    if(!src||!src.drill_to.includes(i.to)) throw Error(`drill ${i.on_dim}→${i.to} outside envelope`);
-    (task.where=task.where||[]).push({dimension:i.on_dim,operator:"eq",value:i.value});
+    const filters=i.filters||[{dim:i.on_dim,value:i.value}];
+    for(const f of filters) if(!env.dims.find(d=>d.key===f.dim)) throw Error(`dim ${f.dim} outside envelope`);
+    const ok=filters.some(f=>{const d=env.dims.find(x=>x.key===f.dim);return d&&d.drill_to.includes(i.to);});
+    if(!ok) throw Error(`drill →${i.to} outside envelope`);
+    for(const f of filters)(task.where=task.where||[]).push({dimension:f.dim,operator:"eq",value:f.value});
     task.dimensions=(task.dimensions||[]).filter(d=>GRAINS.includes(d)).concat([i.to]);
     delete task.sort; delete task.limit;
   } else if(i.type==="pivot_dim"){
@@ -208,7 +213,7 @@ function renderChart(spec,rows){
     return `<div class="kpis">`+v.y.map(k=>{ const r=rows[0]||{}; const cur=r[k],prev=r[k+"__prev"];
       const d=prev?((cur-prev)/prev)*100:null; const inv=(FACTS[k]||{}).invert;
       const good=d!=null&&((d>=0)!==!!inv);
-      return `<div class="kpi"><div class="lab">${esc((FACTS[k]||{}).label||k)}</div><div class="v num">${fmt(cur,unit(k))}</div>${d!=null?`<div class="d ${good?"up":"down"}">${d>=0?"+":"−"}${Math.abs(d).toFixed(1)}% vs prev</div>`:""}</div>`;}).join("")+`</div>`;
+      return `<div class="kpi markkpi" data-k="${k}" title="click for the trend"><div class="lab">${esc((FACTS[k]||{}).label||k)}</div><div class="v num">${fmt(cur,unit(k))}</div>${d!=null?`<div class="d ${good?"up":"down"}">${d>=0?"+":"−"}${Math.abs(d).toFixed(1)}% vs prev</div>`:""}</div>`;}).join("")+`</div>`;
   }
   if(v.representation==="line"){
     const k=v.y[0], H=260, pad=46, series=v.series?[...new Set(rows.map(r=>r[v.series]))]:[null];
@@ -218,11 +223,12 @@ function renderChart(spec,rows){
     let out=`<svg viewBox="0 0 ${W} ${H}" width="100%">`;
     for(let g=0;g<=3;g++){const y=py(maxV*g/3);out+=`<line x1="${pad}" x2="${W-10}" y1="${y}" y2="${y}" stroke="var(--rule)"/><text x="${pad-6}" y="${y+3}" text-anchor="end">${fmt(maxV*g/3,unit(k))}</text>`;}
     series.forEach((s,si)=>{ const sr=s?rows.filter(r=>r[v.series]===s):rows;
-      out+=`<path fill="none" stroke="${colors[si%5]}" stroke-width="2" d="${sr.map((r,i)=>`${i?"L":"M"}${px(xs.indexOf(r[v.x]))},${py(r[k])}`).join("")}"/>`;
+      out+=`<path class="${s?"markline":""}" data-s="${esc(s||"")}" fill="none" stroke="${colors[si%5]}" stroke-width="2" style="${s?"cursor:pointer":""}" d="${sr.map((r,i)=>`${i?"L":"M"}${px(xs.indexOf(r[v.x]))},${py(r[k])}`).join("")}"/>`;
+      sr.forEach((r,i)=>{out+=`<circle class="${s?"markline":"markpt"}" data-s="${esc(s||"")}" cx="${px(xs.indexOf(r[v.x]))}" cy="${py(r[k])}" r="3.5" fill="${colors[si%5]}" style="cursor:pointer"><title>${esc(r[v.x])}: ${fmt(r[k],unit(k))}</title></circle>`;});
       if(!s&&sr[0]&&sr[0][k+"__prev"]!=null) out+=`<path fill="none" stroke="var(--ink-300)" stroke-width="1.5" stroke-dasharray="4 3" d="${sr.map((r,i)=>`${i?"L":"M"}${px(i)},${py(r[k+"__prev"])}`).join("")}"/>`;
-      if(s) out+=`<text x="${W-12}" y="${py(sr[sr.length-1][k])}" text-anchor="end" fill="${colors[si%5]}">${esc(s)}</text>`;});
+      if(s) out+=`<text class="markline" data-s="${esc(s)}" x="${W-12}" y="${py(sr[sr.length-1][k])}" text-anchor="end" fill="${colors[si%5]}" style="cursor:pointer">${esc(s)}</text>`;});
     xs.forEach((x,i)=>{ if(i%Math.ceil(xs.length/8)===0) out+=`<text x="${px(i)}" y="${H-10}" text-anchor="middle">${esc(x)}</text>`;});
-    return out+"</svg>";
+    return out+`</svg><div class="note">${v.series?"click a line to drill into that "+esc((DIMS[v.series]||{}).label||v.series).toLowerCase():"click a point to break the trend out by "+esc((DIMS[breakoutDim(spec)]||{}).label||"dimension").toLowerCase()}</div>`;
   }
   if(v.representation==="bars_v"){
     const k=v.y[0],H=280,pad=46,total=rows.reduce((a,r)=>a+(r[k]||0),0);
@@ -256,8 +262,8 @@ function renderChart(spec,rows){
     ys.forEach((yv,j)=>{ out+=`<text x="162" y="${40+j*ch+ch/2}" text-anchor="end" class="val">${esc(yv)}</text>`;
       xs.forEach((x,i)=>{ const r=rows.find(rr=>rr[v.x]===x&&rr[v.series]===yv); if(!r)return;
         let t=(r[k]-mn)/((mx-mn)||1); if(inv) t=1-t;
-        out+=`<rect x="${170+i*cw}" y="${28+j*ch}" width="${cw-4}" height="${ch-4}" rx="1" fill="rgba(37,99,235,${0.12+0.68*t})"/><text x="${170+i*cw+cw/2}" y="${28+j*ch+ch/2+4}" text-anchor="middle" fill="${t>0.6?"#fff":"var(--ink-700)"}">${fmt(r[k],unit(k))}</text>`;});});
-    return out+"</svg>";
+        out+=`<rect class="markcell" data-x="${esc(x)}" data-y="${esc(yv)}" x="${170+i*cw}" y="${28+j*ch}" width="${cw-4}" height="${ch-4}" rx="1" fill="rgba(37,99,235,${0.12+0.68*t})" style="cursor:pointer"><title>click to drill into ${esc(x)} × ${esc(yv)}</title></rect><text pointer-events="none" x="${170+i*cw+cw/2}" y="${28+j*ch+ch/2+4}" text-anchor="middle" fill="${t>0.6?"#fff":"var(--ink-700)"}">${fmt(r[k],unit(k))}</text>`;});});
+    return out+`</svg><div class="note">click a cell to drill into that ${esc((DIMS[v.x]||{}).label||"")} × ${esc((DIMS[v.series]||{}).label||"")} slice</div>`;
   }
   if(v.representation==="marimekko"){
     const k=v.y[0], xs=[...new Set(rows.map(r=>r[v.x]))], H=320;
@@ -266,12 +272,12 @@ function renderChart(spec,rows){
     let out=`<svg viewBox="0 0 ${W} ${H}" width="100%">`, cx=40;
     xs.forEach(x=>{ const cwd=(colTotal(x)/grand)*(W-90); let cy=24;
       rows.filter(r=>r[v.x]===x).forEach((r,j)=>{ const h=(r[k]/colTotal(x))*(H-90);
-        out+=`<rect x="${cx}" y="${cy}" width="${Math.max(cwd-3,2)}" height="${Math.max(h-2,1)}" fill="${colors[j%5]}" opacity="0.85"/>`;
+        out+=`<rect class="markcell" data-x="${esc(x)}" data-y="${esc(r[v.series])}" x="${cx}" y="${cy}" width="${Math.max(cwd-3,2)}" height="${Math.max(h-2,1)}" fill="${colors[j%5]}" opacity="0.85" style="cursor:pointer"><title>click to drill into ${esc(x)} × ${esc(r[v.series])}</title></rect>`;
         if(h>18&&cwd>60) out+=`<text x="${cx+6}" y="${cy+14}" fill="#fff">${esc(r[v.series])} ${(100*r[k]/colTotal(x)).toFixed(0)}%</text>`;
         cy+=h;});
       out+=`<text x="${cx+cwd/2}" y="${H-42}" text-anchor="middle">${esc(x)}</text><text x="${cx+cwd/2}" y="${H-28}" text-anchor="middle">${(100*colTotal(x)/grand).toFixed(0)}% · ${fmt(colTotal(x),unit(k))}</text>`;
       cx+=cwd;});
-    return out+`</svg><div class="note">width = share of ${esc((FACTS[k]||{}).label||k)} · height = share within column</div>`;
+    return out+`</svg><div class="note">width = share of ${esc((FACTS[k]||{}).label||k)} · height = share within column · click a block to drill</div>`;
   }
   if(v.representation==="cohort_matrix"){
     const cohorts=MEMBERS.first_order_month, n=cohorts.length;
@@ -300,6 +306,20 @@ function renderChart(spec,rows){
   rows.forEach((r,i)=>{ out+=`<tr class="click mark" data-i="${i}">`+cols.map(c=>`<td>${typeof r[c]==="number"?fmt(r[c],unit(c)):esc(r[c])}</td>`).join("")+"</tr>";});
   return out+"</table>";
 }
+function breakoutDim(spec){
+  const used=new Set((spec.query.task.dimensions||[]));
+  const c=spec.envelope.dims.find(d=>d.cardinality==="low"&&!used.has(d.key))||spec.envelope.dims.find(d=>!used.has(d.key));
+  return c?c.key:null;
+}
+function drillTarget(spec, dimKeys){
+  const used=new Set((spec.query.task.where||[]).map(w=>w.dimension).concat(dimKeys));
+  const prefer=["advertised_asin","fsn","product","keyword","campaign","ad_set","creative","search_term"];
+  for(const dk of dimKeys){ const d=spec.envelope.dims.find(x=>x.key===dk); if(!d) continue;
+    const cands=d.drill_to.filter(t=>!used.has(t));
+    for(const p of prefer) if(cands.includes(p)) return p;
+    if(cands.length) return cands[0]; }
+  return null;
+}
 function drillHint(spec){ const v=spec.view; const d=spec.envelope.dims.find(x=>x.key===v.x);
   return d&&d.drill_to.length?`→ ${d.drill_to.map(k=>DIMS[k].label).join(" / ")}`:""; }
 
@@ -327,11 +347,37 @@ function render(){
     <div class="body">${renderChart(spec,rows)}</div>
     <div class="foot"><span>data as of 2026-09-10 06:30 IST · last 2 days provisional</span><span>demo data, seeded</span></div>`;
   $("#specView").textContent=JSON.stringify({...spec},null,1);
-  // wire interactions
+  // wire interactions — the chart itself is the drill surface
+  el.querySelectorAll(".markkpi").forEach(t=>t.addEventListener("click",()=>{
+    const k=t.dataset.k, s=JSON.parse(JSON.stringify(spec));
+    s.query.task.dimensions=["date"]; s.query.task.comparison={metric:k,baseline:"previous_period"};
+    s.view={intent:"trend",representation:"line",x:"date",y:[k],compare:true};
+    s.title=(FACTS[k]||{}).label+" — trend"; SPEC=s; render(); toast(`expanded ${FACTS[k].label} → its trend (same query, +date grain)`);
+  }));
+  el.querySelectorAll(".markline").forEach(t=>t.addEventListener("click",()=>{
+    const member=t.dataset.s; if(!member) return;
+    const to=drillTarget(spec,[v.series]); if(!to){toast("edge of the envelope — no drill from "+v.series);return;}
+    try{SPEC=applyI(spec,{type:"drill",on_dim:v.series,value:member,to});
+      SPEC.title=`${DIMS[to].label} within ${member}`; render(); toast(`drilled: where ${v.series} = ${member}`);}catch(e){toast(e.message);}
+  }));
+  el.querySelectorAll(".markpt").forEach(t=>t.addEventListener("click",()=>{
+    const bo=breakoutDim(spec); if(!bo){toast("nothing to break out by in this envelope");return;}
+    const s=JSON.parse(JSON.stringify(spec));
+    s.query.task.dimensions=(s.query.task.dimensions||[]).concat([bo]); delete s.query.task.comparison;
+    s.view=chooseView(s.query,s.envelope,"trend"); s.title=(spec.title||"")+" — by "+DIMS[bo].label;
+    SPEC=s; render(); toast(`broken out by ${DIMS[bo].label} — one line per member`);
+  }));
+  el.querySelectorAll(".markcell").forEach(t=>t.addEventListener("click",()=>{
+    const to=drillTarget(spec,[v.x,v.series]); if(!to){toast("edge of the envelope — no drill from this cell");return;}
+    try{SPEC=applyI(spec,{type:"drill",filters:[{dim:v.x,value:t.dataset.x},{dim:v.series,value:t.dataset.y}],to});
+      SPEC.title=`${DIMS[to].label} within ${t.dataset.x} × ${t.dataset.y}`; render();
+      toast(`drilled: where ${v.x} = ${t.dataset.x} AND ${v.series} = ${t.dataset.y}`);}catch(e){toast(e.message);}
+  }));
   el.querySelectorAll(".mark").forEach(m=>m.addEventListener("click",()=>{
     const r=rows[parseInt(m.dataset.i)], d=spec.envelope.dims.find(x=>x.key===v.x);
     if(!d||!d.drill_to.length){toast("no drill from this dim (edge of the envelope)");return;}
-    try{ SPEC=applyI(spec,{type:"drill",on_dim:v.x,value:r[v.x],to:d.drill_to.includes("advertised_asin")?"advertised_asin":d.drill_to[0]});
+    try{ const to=drillTarget(spec,[v.x])||d.drill_to[0];
+      SPEC=applyI(spec,{type:"drill",on_dim:v.x,value:r[v.x],to});
       SPEC.title=`${DIMS[SPEC.query.task.dimensions.filter(x=>!GRAINS.includes(x))[0]].label} within ${r[v.x]}`;
       render(); toast(`drilled: where ${v.x} = ${r[v.x]}`);}catch(e){toast(e.message);}
   }));

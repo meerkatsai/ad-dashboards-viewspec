@@ -50,8 +50,11 @@ def envelope_for(query, platform):
     graph = load("rules/drill-graph.json")["dims"].get(platform, {})
     task = query["task"]
     qdims = [d for d in task.get("dimensions", []) if d not in GRAINS]
-    # closure: dims in the query + everything reachable over drill edges
-    keys, frontier = [], list(qdims)
+    # empty-envelope guard: a dimension-less query seeds from the entity's natural children
+    # (account/campaign -> campaign, store -> channel) so breakout/drill always has somewhere to go
+    seed = qdims or {"account": ["campaign"], "campaign": ["campaign"], "store": ["channel"]}.get(task["entity"], [])
+    # closure: seed dims + everything reachable over drill edges
+    keys, frontier = [], list(seed)
     while frontier:
         k = frontier.pop(0)
         if k in keys or k not in graph:
@@ -134,11 +137,16 @@ def apply(spec, interaction):
     task = new["query"]["task"]
     t = interaction["type"]
     if t == "drill":
-        src, val, dst = interaction["on_dim"], interaction["value"], interaction["to"]
-        graph_ok = any(d["key"] == src and dst in d["drill_to"] for d in env["dims"])
-        if not graph_ok:
-            raise ValueError(f"drill {src}->{dst} is outside the envelope's drill graph")
-        task.setdefault("where", []).append({"dimension": src, "operator": "eq", "value": val})
+        # single-dim mark: {on_dim, value}; 2-dim mark (heatmap cell / marimekko block): filters[]
+        filters = interaction.get("filters") or [{"dim": interaction["on_dim"], "value": interaction["value"]}]
+        dst = interaction["to"]
+        for f in filters:
+            if f["dim"] not in dim_keys:
+                raise ValueError(f"dim {f['dim']} is outside the envelope")
+        if not any(dst in d["drill_to"] for d in env["dims"] if d["key"] in {f["dim"] for f in filters}):
+            raise ValueError(f"drill ->{dst} is outside the envelope's drill graph")
+        for f in filters:
+            task.setdefault("where", []).append({"dimension": f["dim"], "operator": "eq", "value": f["value"]})
         task["dimensions"] = [d for d in task.get("dimensions", []) if d in GRAINS] + [dst]
     elif t == "pivot_dim":
         if interaction["to"] not in dim_keys:

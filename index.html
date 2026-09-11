@@ -35,6 +35,10 @@
   .spec{position:sticky;top:16px} .spec pre{margin:0;padding:14px 16px;font:11px/1.5 var(--mono);white-space:pre-wrap;word-break:break-word;max-height:78vh;overflow:auto}
   .spec .card-h .t{font-size:13px} .hint{font:11px var(--mono);color:var(--ink-500);padding:6px 16px;border-bottom:1px solid var(--rule)}
   svg text{font:11px var(--mono);fill:var(--ink-500)} svg .val{fill:var(--ink-700)}
+  .mark,.markcell,.markline,.markpt{transition:opacity .12s}
+  .mark:hover,.markcell:hover,.markline:hover,.markpt:hover{opacity:.65}
+  .markkpi{cursor:pointer;border:1px solid transparent;border-radius:4px;padding:6px;margin:-6px;transition:background .12s}
+  .markkpi:hover{background:#f5f5f4;border-color:var(--rule)}
   .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px}
   .kpi .lab{font-size:12px;color:var(--ink-500)} .kpi .v{font-size:28px;font-weight:650;font-variant-numeric:tabular-nums}
   .kpi .d{font-size:12px} .up{color:var(--green)} .down{color:var(--red)}
