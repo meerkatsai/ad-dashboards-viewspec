@@ -1,5 +1,12 @@
 # View Spec — on-demand living charts
 
+**Live demo layout**: the root (`index.html`) is the design-file dashboard — top bar with
+platform selection only, every chart a separate full-width card (the design handoff's exact
+card sets). Clicking any bar / heatmap cell bridges into `explore.html`, the on-demand
+living-chart explorer, with the drilled context already applied — that page is this repo's
+actual subject (spec inspector, drill/pivot/regrain, all bounded by the envelope).
+
+
 The contract for **on-demand generated charts**: a user asks ("spend allocation across
 placements"), the router produces the DSL `query_task`, and **code derives everything else** —
 the chart's navigable space, its representation, and its interactions. The LLM doesn't decide

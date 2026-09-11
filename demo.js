@@ -452,5 +452,8 @@ function render(){
 const sel=$("#prompt");
 PROMPTS.forEach((p,i)=>{const o=document.createElement("option");o.value=i;o.textContent=p.label;sel.appendChild(o);});
 $("#run").addEventListener("click",()=>{SPEC=derive(PROMPTS[parseInt(sel.value)]);render();});
-sel.value="2";
-SPEC=derive(PROMPTS[2]); render();
+function fromHash(){ try{ const m=location.hash.match(/^#q=(.+)$/); if(!m)return null;
+  return JSON.parse(decodeURIComponent(escape(atob(m[1])))); }catch(e){ return null; } }
+const HQ=fromHash();
+if(HQ){ SPEC=derive(HQ); render(); toast("opened from the dashboard — drilled context applied"); }
+else { sel.value="2"; SPEC=derive(PROMPTS[2]); render(); }

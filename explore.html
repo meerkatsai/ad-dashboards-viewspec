@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>View Spec — living chart demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* tokens — verbatim from the design handoff (tokens/*.css) */
+    --surface-page:#FAFAF9; --surface-card:#FFFFFF; --surface-sunken:#F4F4F2; --surface-tint:#FFF7F2;
+    --ink-900:#0B0B0C; --ink-700:#2A2A2E; --ink-500:#5C5C63; --ink-400:#8A8A92; --ink-300:#B4B4BA;
+    --rule:#E4E4E7; --rule-strong:#111113; --rule-grid:#EFEFEC;
+    --accent:#EA580C; --accent-hover:#C2410C; --good:#15803D; --bad:#B91C1C;
+    --series-1:#4285F4; --series-2:#EA4335; --series-3:#FBBC04; --series-4:#34A853;
+    --series-5:#7E57C2; --series-6:#00ACC1; --series-7:#E91E63; --series-8:#8D6E63;
+    --series-compare:#8A8A92; --series-dim:#D4D4D7; --bar-neutral:#D4D4D7; --bar-active:#4285F4; --bar-track:#F4F4F2;
+    --heat-1:#E8F0FE; --heat-2:#AECBFA; --heat-3:#669DF6; --heat-4:#1A73E8; --heat-5:#174EA6;
+    --chart-axis:#8A8A92; --chart-crosshair:#0B0B0C;
+    --font-ui:'Geist',system-ui,-apple-system,sans-serif; --font-mono:'Geist Mono',ui-monospace,monospace;
+    --font-display:'Instrument Serif',Georgia,serif;
+    --fs-title:26px; --fs-kpi:28px; --fs-card:15px; --fs-body:13px; --fs-label:12px; --fs-micro:11px;
+    --ease:cubic-bezier(.2,.7,.2,1);
+  }
+  *{box-sizing:border-box} body{margin:0;background:var(--surface-page);color:var(--ink-700);font:var(--fs-body)/1.45 var(--font-ui)}
+  .num{font-variant-numeric:tabular-nums}
+  .wrap{max-width:1440px;margin:0 auto;padding:24px}
+  h1{font:400 var(--fs-title)/1.15 var(--font-display);color:var(--ink-900);margin:0}
+  .sub{color:var(--ink-500);font-size:var(--fs-label);margin:6px 0 20px}
+  .top{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+  .mono{font-family:var(--font-mono);font-size:var(--fs-micro);color:var(--ink-400);text-transform:lowercase}
+  select,button{font:500 var(--fs-label)/1 var(--font-ui);border:1px solid var(--rule);background:var(--surface-card);color:var(--ink-700);border-radius:4px;padding:0 10px;height:28px;cursor:pointer;transition:background 120ms var(--ease),color 120ms var(--ease)}
+  select:hover,button:hover{background:var(--surface-sunken)}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#fff} button.primary:hover{background:var(--accent-hover)}
+  button.on{background:var(--ink-900);border-color:var(--ink-900);color:#fff}
+  .grid{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:16px;align-items:start}
+  @media (max-width:1000px){.grid{grid-template-columns:1fr}}
+  .card{background:var(--surface-card);border:1px solid var(--rule);border-radius:6px}
+  .card-h{padding:14px 20px 10px;border-bottom:1.5px solid var(--rule-strong)}
+  .card-h .t{font-size:var(--fs-card);font-weight:600;color:var(--ink-900)} .card-h .q{font-size:var(--fs-label);color:var(--ink-500);margin-top:2px}
+  .controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 20px;border-bottom:1px solid var(--rule)}
+  .controls label{font-family:var(--font-mono);font-size:var(--fs-micro);color:var(--ink-400);text-transform:lowercase}
+  .seg{display:inline-flex;background:var(--surface-sunken);border:1px solid var(--rule);border-radius:4px;overflow:hidden;height:28px}
+  .seg button{border:0;border-radius:0;background:transparent;height:26px} .seg button.on{background:var(--ink-900);color:#fff}
+  .crumbs{padding:8px 20px;font-family:var(--font-mono);font-size:var(--fs-micro);color:var(--ink-400);border-bottom:1px solid var(--rule);display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+  .crumb{background:var(--surface-tint);border:1px solid var(--accent);border-radius:3px;padding:2px 6px;color:var(--ink-700);cursor:pointer}
+  .crumb:hover{text-decoration:line-through}
+  .body{padding:16px 20px 20px;overflow-x:auto;position:relative}
+  .foot{padding:8px 20px;border-top:1px solid var(--rule);font-family:var(--font-mono);font-size:var(--fs-micro);color:var(--ink-400);text-transform:lowercase;display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px}
+  .spec{position:sticky;top:16px} .spec pre{margin:0;padding:14px 16px;font:var(--fs-micro)/1.5 var(--font-mono);color:var(--ink-700);white-space:pre-wrap;word-break:break-word;max-height:78vh;overflow:auto}
+  .spec .card-h .t{font-size:var(--fs-body)} .hint{font-family:var(--font-mono);font-size:var(--fs-micro);color:var(--ink-400);padding:6px 16px;border-bottom:1px solid var(--rule)}
+  svg text{font:var(--fs-micro) var(--font-mono);fill:var(--chart-axis)} svg .val{fill:var(--ink-700)}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px}
+  .kpi .lab{font-size:var(--fs-label);color:var(--ink-500)}
+  .kpi .v{font-size:var(--fs-kpi);font-weight:600;color:var(--ink-900);font-variant-numeric:tabular-nums;line-height:1.15;margin-top:2px}
+  .kpi .d{font-family:var(--font-mono);font-size:var(--fs-micro);margin-top:2px} .up{color:var(--good)} .down{color:var(--bad)}
+  table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+  th{height:36px;padding:0 12px;font-size:var(--fs-label);font-weight:500;color:var(--ink-500);background:var(--surface-sunken);text-align:right;white-space:nowrap;position:sticky;top:0}
+  td{height:36px;padding:0 12px;font-size:var(--fs-body);color:var(--ink-700);text-align:right;border-bottom:1px solid var(--rule);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  th:first-child,td:first-child{text-align:left}
+  tr.click{cursor:pointer;transition:background 120ms var(--ease)} tr.click:hover td{background:var(--surface-sunken)}
+  .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--ink-900);color:#fff;font-size:var(--fs-label);border-radius:4px;padding:10px 16px;opacity:0;transition:opacity 200ms var(--ease);pointer-events:none}
+  .toast.show{opacity:1}
+  .note{font-family:var(--font-mono);font-size:var(--fs-micro);color:var(--ink-400);padding-top:8px;text-transform:lowercase}
+  /* marks: hover per interaction guideline */
+  .mark,.markcell,.markline,.markpt{transition:fill 120ms var(--ease),opacity 120ms var(--ease)}
+  svg.barsv:hover rect.mark{fill:var(--series-dim)} svg.barsv rect.mark:hover{fill:var(--series-1)}
+  svg.barsv rect.mark + text.hoverval{opacity:0;transition:opacity 120ms var(--ease)}
+  svg.barsv rect.mark:hover + text.hoverval{opacity:1}
+  svg.barsh rect.mark:hover{fill:var(--ink-500)}
+  rect.markcell:hover{stroke:var(--ink-900);stroke-width:1.5}
+  .markkpi{cursor:pointer;border:1px solid transparent;border-radius:4px;padding:8px;margin:-8px;transition:background 120ms var(--ease)}
+  .markkpi:hover{background:var(--surface-sunken);border-color:var(--rule)}
+  .tooltip{position:absolute;pointer-events:none;background:var(--ink-900);color:#fff;border-radius:4px;padding:6px 10px;font-size:var(--fs-label);line-height:1.3;white-space:nowrap;box-shadow:0 4px 12px rgba(0,0,0,.18);display:none}
+  .tooltip .tl{font-family:var(--font-mono);font-size:var(--fs-micro);color:var(--ink-300)}
+  .legend{display:flex;gap:16px;padding:6px 0 0 52px;flex-wrap:wrap;font-size:var(--fs-label);color:var(--ink-500)}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>View Spec — living chart demo</h1>
+  <div class="sub mono">seeded demo data · no LLM anywhere — a canned prompt stands in for the router; everything after it is the deterministic loop: query → envelope → rules → chart → interaction → query</div>
+  <div class="top">
+    <span style="font:11px var(--mono);color:var(--ink-500)">PROMPT (canned)</span>
+    <select id="prompt"></select>
+    <button class="primary" id="run">Generate</button>
+  </div>
+  <div class="grid">
+    <div>
+      <div class="card" id="chartCard"></div>
+    </div>
+    <div class="card spec">
+      <div class="card-h"><div class="t">view_spec (live)</div></div>
+      <div class="hint">updates on every interaction — this JSON is the whole contract</div>
+      <pre id="specView"></pre>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<script src="demo.js"></script>
+</body>
+</html>
