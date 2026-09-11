@@ -1,0 +1,121 @@
+{
+ "version": "1.0",
+ "title": "Spend share — placement × match type",
+ "query": {
+  "version": "1.0",
+  "task_type": "query",
+  "task": {
+   "entity": "campaign",
+   "metrics": [
+    "spend"
+   ],
+   "dimensions": [
+    "placement",
+    "match_type"
+   ],
+   "time_range": {
+    "type": "relative",
+    "value": 30,
+    "unit": "day"
+   }
+  }
+ },
+ "envelope": {
+  "platform": "flipkart",
+  "entity": "campaign",
+  "facts": [
+   {
+    "key": "spend",
+    "label": "Ad Spend",
+    "unit": "inr",
+    "additive": true
+   }
+  ],
+  "dims": [
+   {
+    "key": "placement",
+    "label": "Placement",
+    "kind": "categorical",
+    "cardinality": "low",
+    "drill_to": [
+     "campaign",
+     "fsn"
+    ]
+   },
+   {
+    "key": "match_type",
+    "label": "Match type",
+    "kind": "categorical",
+    "cardinality": "low",
+    "drill_to": [
+     "keyword"
+    ]
+   },
+   {
+    "key": "campaign",
+    "label": "Campaign",
+    "kind": "entity",
+    "cardinality": "high",
+    "drill_to": [
+     "ad_group",
+     "placement",
+     "keyword",
+     "search_term",
+     "fsn"
+    ]
+   },
+   {
+    "key": "fsn",
+    "label": "FSN (product)",
+    "kind": "entity",
+    "cardinality": "high",
+    "drill_to": []
+   },
+   {
+    "key": "keyword",
+    "label": "Keyword",
+    "kind": "entity",
+    "cardinality": "high",
+    "drill_to": [
+     "search_term"
+    ]
+   },
+   {
+    "key": "ad_group",
+    "label": "Ad group",
+    "kind": "entity",
+    "cardinality": "high",
+    "drill_to": [
+     "keyword",
+     "search_term",
+     "fsn"
+    ]
+   },
+   {
+    "key": "search_term",
+    "label": "Search term",
+    "kind": "categorical",
+    "cardinality": "high",
+    "drill_to": []
+   }
+  ],
+  "grains": [
+   "date",
+   "week",
+   "month"
+  ],
+  "source": "bronze"
+ },
+ "view": {
+  "intent": "composition",
+  "representation": "marimekko",
+  "x": "placement",
+  "series": "match_type",
+  "y": [
+   "spend"
+  ]
+ },
+ "pin": {
+  "pinnable": true
+ }
+}

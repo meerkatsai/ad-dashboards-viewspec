@@ -1,0 +1,56 @@
+{
+  "_doc": "Interaction -> deterministic query/view transformation. The chart is a living pivot table CONTAINED to its envelope: every gesture below rewrites query.task by rule, the server validates the result against the envelope + the query_task schema, and the SAME one executor runs it. No LLM at interaction time. Rejected = the gesture referenced a dim/fact/grain the envelope doesn't declare.",
+  "interactions": {
+    "drill": {
+      "gesture": "click a chart mark (bar, cell, slice of a bar)",
+      "requires": "clicked dim has drill_to edges (rules/drill-graph.json)",
+      "query": "APPEND where: {dimension: <clicked dim>, operator: eq, value: <clicked member>}; REPLACE dimensions: [<drill_to target>]",
+      "view": "re-run representation rules on the new shape (target dim cardinality decides bars_h vs bars_v); breadcrumb renders the where-chain, each crumb removable (un-drill = pop the predicate)",
+      "example": "spend by placement -> click 'Top of Search' -> products within Top of Search, spend + roas"
+    },
+    "pivot_dim": {
+      "gesture": "dimension selector in the card header",
+      "query": "REPLACE the categorical dimension with the chosen envelope dim (where-chain from drills is kept)",
+      "view": "re-run representation rules"
+    },
+    "pivot_fact": {
+      "gesture": "metric selector in the card header",
+      "query": "no change when the fact is already in task.metrics; else REPLACE task.metrics primary",
+      "view": "y/sort swap to the chosen fact; invert-aware sort direction"
+    },
+    "regrain": {
+      "gesture": "D / W / M segmented control",
+      "query": "REPLACE the temporal dimension: date <-> week <-> month (gold day grain; week/month are date_trunc at read — same table, never a different pull)",
+      "view": "x swaps to the chosen grain"
+    },
+    "rerange": {
+      "gesture": "date range control",
+      "query": "REPLACE task.time_range with the chosen preset/custom range (comparison.previous_period shifts with it automatically)",
+      "view": "unchanged"
+    },
+    "toggle_compare": {
+      "gesture": "Compare toggle",
+      "query": "ADD/REMOVE task.comparison {metric: <primary>, baseline: previous_period}",
+      "view": "compare flag; dashed grey series"
+    },
+    "sort": {
+      "gesture": "column header / sort control",
+      "query": "REPLACE task.sort {metric, direction}",
+      "view": "sort mirror"
+    },
+    "pin": {
+      "gesture": "pin button",
+      "effect": "snapshot CURRENT {query, view, controls} into a card-definition (ad-dashboards-prebuilt schema/card-definition.schema.json) with a generated id; the chart joins the cockpit pin lifecycle exactly like a prebuilt card — a view the user pivoted into shape is pinned IN that shape",
+      "query": "frozen as-is"
+    },
+    "unpin": {
+      "gesture": "unpin button",
+      "effect": "removes the card from the cockpit stack; the definition stays on the Reports page until discarded"
+    }
+  },
+  "containment": [
+    "an interaction may only reference keys present in envelope.facts / envelope.dims / envelope.grains — anything else is rejected before execution",
+    "drills compose: each drill appends one where predicate; the breadcrumb is the audit trail and the undo",
+    "widening beyond the envelope (new platform, new entity, unrelated dim) is NOT an interaction — it is a new prompt through the router, producing a new spec"
+  ]
+}

@@ -1,0 +1,62 @@
+{
+ "version": "1.0",
+ "title": "Repeat orders by first-order cohort",
+ "query": {
+  "version": "1.0",
+  "task_type": "query",
+  "task": {
+   "entity": "store",
+   "metrics": [
+    "orders"
+   ],
+   "dimensions": [
+    "first_order_month",
+    "month"
+   ],
+   "time_range": {
+    "type": "relative",
+    "value": 6,
+    "unit": "month"
+   }
+  }
+ },
+ "envelope": {
+  "platform": "shopify",
+  "entity": "store",
+  "facts": [
+   {
+    "key": "orders",
+    "label": "Orders",
+    "unit": "num",
+    "additive": true
+   }
+  ],
+  "dims": [
+   {
+    "key": "first_order_month",
+    "label": "First-order month",
+    "kind": "cohort",
+    "cardinality": "high",
+    "drill_to": []
+   }
+  ],
+  "grains": [
+   "date",
+   "week",
+   "month"
+  ],
+  "source": "gold"
+ },
+ "view": {
+  "intent": "cohort",
+  "representation": "cohort_matrix",
+  "x": "first_order_month",
+  "series": "month",
+  "y": [
+   "orders"
+  ]
+ },
+ "pin": {
+  "pinnable": true
+ }
+}

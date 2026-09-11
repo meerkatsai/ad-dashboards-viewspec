@@ -1,0 +1,129 @@
+{
+ "version": "1.0",
+ "title": "Products within Top of Search — spend & ROAS",
+ "query": {
+  "version": "1.0",
+  "task_type": "query",
+  "task": {
+   "entity": "campaign",
+   "metrics": [
+    "spend",
+    "roas"
+   ],
+   "dimensions": [
+    "advertised_asin"
+   ],
+   "time_range": {
+    "type": "relative",
+    "value": 30,
+    "unit": "day"
+   },
+   "where": [
+    {
+     "dimension": "placement",
+     "operator": "eq",
+     "value": "Placement Top"
+    }
+   ]
+  }
+ },
+ "envelope": {
+  "platform": "amazon",
+  "entity": "campaign",
+  "facts": [
+   {
+    "key": "spend",
+    "label": "Spend",
+    "unit": "inr",
+    "additive": true
+   },
+   {
+    "key": "roas",
+    "label": "ROAS",
+    "unit": "x",
+    "additive": false
+   }
+  ],
+  "dims": [
+   {
+    "key": "placement",
+    "label": "Placement",
+    "kind": "categorical",
+    "cardinality": "low",
+    "drill_to": [
+     "campaign",
+     "advertised_asin"
+    ]
+   },
+   {
+    "key": "campaign",
+    "label": "Campaign",
+    "kind": "entity",
+    "cardinality": "high",
+    "drill_to": [
+     "ad_group",
+     "placement",
+     "keyword",
+     "search_term",
+     "advertised_asin"
+    ]
+   },
+   {
+    "key": "advertised_asin",
+    "label": "Advertised ASIN",
+    "kind": "entity",
+    "cardinality": "high",
+    "drill_to": []
+   },
+   {
+    "key": "ad_group",
+    "label": "Ad group",
+    "kind": "entity",
+    "cardinality": "high",
+    "drill_to": [
+     "keyword",
+     "search_term",
+     "advertised_asin"
+    ]
+   },
+   {
+    "key": "keyword",
+    "label": "Keyword",
+    "kind": "entity",
+    "cardinality": "high",
+    "drill_to": [
+     "search_term"
+    ]
+   },
+   {
+    "key": "search_term",
+    "label": "Search term",
+    "kind": "categorical",
+    "cardinality": "high",
+    "drill_to": []
+   }
+  ],
+  "grains": [
+   "date",
+   "week",
+   "month"
+  ],
+  "source": "bronze"
+ },
+ "view": {
+  "intent": "composition",
+  "representation": "bars_h",
+  "x": "advertised_asin",
+  "y": [
+   "spend"
+  ],
+  "sort": {
+   "by": "spend",
+   "direction": "desc"
+  },
+  "limit": 10
+ },
+ "pin": {
+  "pinnable": true
+ }
+}

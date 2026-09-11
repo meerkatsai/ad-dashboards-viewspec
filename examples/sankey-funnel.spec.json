@@ -1,0 +1,61 @@
+{
+ "version": "1.0",
+ "title": "Funnel flow — sessions to purchase",
+ "query": {
+  "version": "1.0",
+  "task_type": "query",
+  "task": {
+   "entity": "account",
+   "metrics": [
+    "purchases"
+   ],
+   "dimensions": [
+    "funnel_stage"
+   ],
+   "time_range": {
+    "type": "relative",
+    "value": 30,
+    "unit": "day"
+   }
+  }
+ },
+ "envelope": {
+  "platform": "shopify",
+  "entity": "account",
+  "facts": [
+   {
+    "key": "purchases",
+    "label": "purchases",
+    "unit": "num",
+    "additive": true
+   }
+  ],
+  "dims": [
+   {
+    "key": "funnel_stage",
+    "label": "Funnel stage",
+    "kind": "stage",
+    "cardinality": "low",
+    "drill_to": []
+   }
+  ],
+  "grains": [
+   "date",
+   "week",
+   "month"
+  ],
+  "source": "gold"
+ },
+ "view": {
+  "intent": "flow",
+  "representation": "sankey",
+  "x": "funnel_stage",
+  "series": "funnel_stage",
+  "y": [
+   "purchases"
+  ]
+ },
+ "pin": {
+  "pinnable": true
+ }
+}

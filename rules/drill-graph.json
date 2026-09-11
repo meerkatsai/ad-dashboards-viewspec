@@ -1,0 +1,49 @@
+{
+  "_doc": "Drill edges + dim kinds per platform, grounded in platform_heuristics/<p>/structure.yaml hierarchies and DM/bronze dimension keys (basic repo). An edge a->b means: clicking a member of dim a can open dim b filtered to that member (where a eq <member>). Keys are canonical bronze dimension keys. cardinality low = <= ~6 known members (bars_v); high = ranked lists (bars_h, limit 10).",
+  "dims": {
+    "amazon": {
+      "campaign": { "label": "Campaign", "kind": "entity", "cardinality": "high", "drill_to": ["ad_group", "placement", "keyword", "search_term", "advertised_asin"] },
+      "ad_group": { "label": "Ad group", "kind": "entity", "cardinality": "high", "drill_to": ["keyword", "search_term", "advertised_asin"] },
+      "placement": { "label": "Placement", "kind": "categorical", "cardinality": "low", "drill_to": ["campaign", "advertised_asin"] },
+      "keyword": { "label": "Keyword", "kind": "entity", "cardinality": "high", "drill_to": ["search_term"] },
+      "search_term": { "label": "Search term", "kind": "categorical", "cardinality": "high", "drill_to": [] },
+      "advertised_asin": { "label": "Advertised ASIN", "kind": "entity", "cardinality": "high", "drill_to": [] },
+      "match_type": { "label": "Match type", "kind": "categorical", "cardinality": "low", "drill_to": ["keyword"] }
+    },
+    "flipkart": {
+      "campaign": { "label": "Campaign", "kind": "entity", "cardinality": "high", "drill_to": ["ad_group", "placement", "keyword", "search_term", "fsn"] },
+      "ad_group": { "label": "Ad group", "kind": "entity", "cardinality": "high", "drill_to": ["keyword", "search_term", "fsn"] },
+      "placement": { "label": "Placement", "kind": "categorical", "cardinality": "low", "drill_to": ["campaign", "fsn"] },
+      "keyword": { "label": "Keyword", "kind": "entity", "cardinality": "high", "drill_to": ["search_term"] },
+      "search_term": { "label": "Search term", "kind": "categorical", "cardinality": "high", "drill_to": [] },
+      "fsn": { "label": "FSN (product)", "kind": "entity", "cardinality": "high", "drill_to": [] },
+      "match_type": { "label": "Match type", "kind": "categorical", "cardinality": "low", "drill_to": ["keyword"] }
+    },
+    "google": {
+      "campaign": { "label": "Campaign", "kind": "entity", "cardinality": "high", "drill_to": ["ad_group", "device", "location", "search_term"] },
+      "ad_group": { "label": "Ad group", "kind": "entity", "cardinality": "high", "drill_to": ["keyword", "search_term"] },
+      "keyword": { "label": "Keyword", "kind": "entity", "cardinality": "high", "drill_to": ["search_term"] },
+      "search_term": { "label": "Search term", "kind": "categorical", "cardinality": "high", "drill_to": [] },
+      "device": { "label": "Device", "kind": "categorical", "cardinality": "low", "drill_to": ["campaign"] },
+      "location": { "label": "Location", "kind": "categorical", "cardinality": "high", "drill_to": ["campaign"] },
+      "match_type": { "label": "Match type", "kind": "categorical", "cardinality": "low", "drill_to": ["keyword"] }
+    },
+    "meta": {
+      "campaign": { "label": "Campaign", "kind": "entity", "cardinality": "high", "drill_to": ["ad_set", "age", "region", "publisher_platform"] },
+      "ad_set": { "label": "Ad set", "kind": "entity", "cardinality": "high", "drill_to": ["ad", "creative"] },
+      "ad": { "label": "Ad", "kind": "entity", "cardinality": "high", "drill_to": ["creative"] },
+      "creative": { "label": "Creative", "kind": "entity", "cardinality": "high", "drill_to": [] },
+      "age": { "label": "Age bracket", "kind": "categorical", "cardinality": "low", "drill_to": ["campaign"] },
+      "region": { "label": "Region", "kind": "categorical", "cardinality": "high", "drill_to": ["campaign"] },
+      "publisher_platform": { "label": "Platform (FB/IG/AN)", "kind": "categorical", "cardinality": "low", "drill_to": ["campaign"] },
+      "device": { "label": "Device", "kind": "categorical", "cardinality": "low", "drill_to": ["campaign"] }
+    },
+    "shopify": {
+      "channel": { "label": "Sales channel", "kind": "categorical", "cardinality": "low", "drill_to": ["product"] },
+      "product": { "label": "Product", "kind": "entity", "cardinality": "high", "drill_to": [] },
+      "first_order_month": { "label": "First-order month", "kind": "cohort", "cardinality": "high", "drill_to": [] },
+      "funnel_stage": { "label": "Funnel stage", "kind": "stage", "cardinality": "low", "drill_to": [] }
+    }
+  },
+  "grains": { "date": "day", "week": "date_trunc week over daily", "month": "date_trunc month over daily" }
+}
